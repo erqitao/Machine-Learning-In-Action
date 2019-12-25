@@ -1,5 +1,8 @@
 #!/usr/bin/python3
+# -*- coding:utf8 -*-
 import numpy as np
+import string
+import re
 
 def loadDataSet():
     postingList = [['my', 'dog', 'has', 'flea', 'problem', 'help', 'please'],
@@ -96,6 +99,73 @@ def testingNB():
     print(testEntry, "classifier result :", ans)
 
 
+def textParse(filename):
+    # print("filename =", filename)
+    fr = open(filename)
+    data = fr.readlines()
+    rtnWords = []
+
+    r = "['\"!#$%&'()*+,-./:;<=>?@[\\]^`{|}~]+"
+
+    for line in data:
+        line = line.strip()
+        line = re.sub(r, ' ', line)
+        for word in line.split():
+            if len(word) > 2:
+                rtnWords.append(word.lower())
+        
+    return rtnWords
+
+
+def spamTest():
+    docList =[]
+    classList = []
+    fullText = []
+
+    for i in range(1, 26):
+        wordList = textParse("spam/%d.txt" % i)
+        docList.append(wordList)
+        fullText.extend(wordList)
+        classList.append(1)
+        wordList = textParse("ham/%d.txt" % i)
+        docList.append(wordList)
+        fullText.extend(wordList)
+        classList.append(0)
+    
+    vocabList = createVocbList(docList)
+    # print(docList)
+    # print(classList)
+    # print("vocabList:\n", vocabList)
+
+    trainingSet = list(range(50))
+    testSet = []
+    for i in range(10):
+        randomIndex = int(np.random.uniform(0, len(trainingSet)))
+        testSet.append(randomIndex)
+        del trainingSet[randomIndex]
+
+    trainMat = []
+    trainClasses = []
+    
+    for docIndex in trainingSet:
+        trainMat.append(setOfWords2Vec(vocabList, docList[docIndex]))
+        trainClasses.append(classList[docIndex])
+
+    # print("trainMat:\n", trainMat)
+    # print("trainClasses:\n", trainClasses)
+    p0Num, p1Num, pab = trainNB(np.array(trainMat), np.array(trainClasses))
+    errorCount = 0
+    for i in testSet:
+        testVect = setOfWords2Vec(vocabList, docList[i])
+        if classifyNB(testVect, p0Num, p1Num, pab) != classList[i]:
+            errorCount += 1
+            print("Error!")
+            print("the real class is", classList[i])
+            print("file id:", i)
+            print(docList[i])
+    print("the error rate is %f" % (errorCount / len(testSet)))
+
 
 if __name__ == "__main__":
-    testingNB()
+    #testingNB()
+    spamTest()
